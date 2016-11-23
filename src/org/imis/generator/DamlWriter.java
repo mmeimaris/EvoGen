@@ -57,4 +57,16 @@ public class DamlWriter
     s = "</" + T_RDF_PREFIX + "Description>";
     out.println(s);
   }
+
+@Override
+public void addType(String type, String valueId) {
+	// TODO Auto-generated method stub
+	
+}
+
+@Override
+void writeLogHeader() {
+	// TODO Auto-generated method stub
+	
+}
 }

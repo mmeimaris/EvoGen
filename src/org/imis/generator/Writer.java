@@ -36,10 +36,13 @@ public interface Writer {
    */
   public void startFile(String fileName);
 
+  public void startLogFile(String fileName);
+  
   /**
    * Finishes the current file.
    */
   public void endFile();
+  public void endLogFile();
 
   /**
    * Starts a section for the specified instance.
@@ -70,6 +73,12 @@ public interface Writer {
    */
   public void addProperty(int property, String value, boolean isResource);
 
+  public void addPropertyInstance(String p1, String p2, String p3, boolean p3res);
+  
+  public void addType(String type, String valueId);
+  public void addTypeClass(String p1);
+  
+  public void addSuperClass(String p1, String p2);
   /**
    * Adds a property statement for the current element whose value is an individual.
    * @param property Type of the property.

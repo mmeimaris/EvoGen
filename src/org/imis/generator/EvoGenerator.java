@@ -28,11 +28,27 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 
+import org.imis.model.CharacteristicSet;
+
+import com.hp.hpl.jena.graph.Node;
+import com.hp.hpl.jena.graph.Triple;
+import com.hp.hpl.jena.query.Query;
+import com.hp.hpl.jena.query.QueryExecution;
+import com.hp.hpl.jena.query.QueryExecutionFactory;
+import com.hp.hpl.jena.query.QueryFactory;
+import com.hp.hpl.jena.query.QuerySolution;
+import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
+import com.hp.hpl.jena.rdf.model.NodeIterator;
+import com.hp.hpl.jena.rdf.model.RDFNode;
+import com.hp.hpl.jena.rdf.model.Resource;
+import com.hp.hpl.jena.rdf.model.ResourceFactory;
+import com.hp.hpl.jena.vocabulary.RDF;
 
 public class EvoGenerator {
 
@@ -81,6 +97,26 @@ public class EvoGenerator {
   static final int CS_C_RESEARCH = CS_C_CHAIR + 1;
   /** ResearchGroup */
   static final int CS_C_RESEARCHGROUP = CS_C_RESEARCH + 1;
+  
+  static final int CS_C_VISITINGPROF = CS_C_RESEARCHGROUP + 1;
+  
+  static final int CS_C_VISITSTUD = CS_C_VISITINGPROF + 1;
+  
+  static final int CS_C_WEBCOURSE = CS_C_VISITSTUD + 1;  //21
+  
+  static final int CS_C_PROJECT = CS_C_WEBCOURSE + 1;
+  
+  static final int CS_C_EVENT = CS_C_PROJECT + 1;
+  
+  static final int CS_C_CONFPUBLICATION = CS_C_EVENT + 1;
+  
+  static final int CS_C_JOURNALPUBLICATION = CS_C_CONFPUBLICATION + 1;
+  
+  static final int CS_C_TECHNICALREPORT = CS_C_JOURNALPUBLICATION + 1;
+  
+  static final int CS_C_BOOK = CS_C_TECHNICALREPORT + 1;
+  
+  static final int CS_C_THESIS = CS_C_BOOK + 1;
   /** class information */
   static final int[][] CLASS_INFO = {
       /*{instance number if not specified, direct super class}*/
@@ -103,7 +139,17 @@ public class EvoGenerator {
       {0, CS_C_NULL}, //CS_C_PUBLICATION
       {0, CS_C_NULL}, //CS_C_CHAIR
       {0, CS_C_NULL}, //CS_C_RESEARCH
-      {0, CS_C_NULL} //CS_C_RESEARCHGROUP
+      {0, CS_C_NULL}, //CS_C_RESEARCHGROUP
+      {0, CS_C_PROF}, //CS_C_VISITPROF
+      {0, CS_C_STUDENT}, //CS_C_VISITSTUD
+      {0, CS_C_NULL}, //CS_C_RESEARCH
+      {0, CS_C_NULL}, //CS_C_PROJECT
+      {0, CS_C_NULL}, //CS_C_EVENT
+      {0, CS_C_PUBLICATION}, //CS_C_CONFPUB
+      {0, CS_C_PUBLICATION}, //CS_C_JOURNALPUB
+      {0, CS_C_PUBLICATION}, //CS_C_TR
+      {0, CS_C_PUBLICATION}, //CS_C_BOOK
+      {0, CS_C_PUBLICATION}, //CS_C_THESIS
   };
   /** class name strings */
   static final String[] CLASS_TOKEN = {
@@ -125,7 +171,17 @@ public class EvoGenerator {
       "Publication", //CS_C_PUBLICATION
       "Chair", //CS_C_CHAIR
       "Research", //CS_C_RESEARCH
-      "ResearchGroup" //CS_C_RESEARCHGROUP
+      "ResearchGroup", //CS_C_RESEARCHGROUP
+      "VisitingProfessor",
+      "VisitingStudent",
+      "WebCourse",
+      "ResearchProject",
+      "Event",
+      "ConferencePublication",
+      "JournalArticle",
+      "TechnicalReport",
+      "Book",
+      "Thesis"
   };
   /** number of classes */
   static final int CLASS_NUM = CLASS_INFO.length;
@@ -133,7 +189,7 @@ public class EvoGenerator {
   static final int INDEX_NUM = 0;
   /** index of super-class in the elements of array CLASS_INFO */
   static final int INDEX_SUPER = 1;
-
+  static String[] CS_EVENT_TYPES = new String[] {"Conferene", "Workshop", "Summer School"};
   ///////////////////////////////////////////////////////////////////////////
   //ontology property information
   ///////////////////////////////////////////////////////////////////////////
@@ -169,6 +225,44 @@ public class EvoGenerator {
   static final int CS_P_SUBORGANIZATIONOF = CS_P_TELEPHONE + 1;
   /** worksFor */
   static final int CS_P_WORKSFOR = CS_P_SUBORGANIZATIONOF + 1;
+  
+  static final int CS_P_VISITSASPROF = CS_P_WORKSFOR + 1;
+  
+  static final int CS_P_VISITDURATION = CS_P_VISITSASPROF + 1;
+  
+  static final int CS_P_VISITSASSTUD = CS_P_VISITDURATION + 1;
+  
+  static final int CS_P_TOPIC = CS_P_VISITSASSTUD + 1;
+  
+  static final int CS_P_URL = CS_P_TOPIC + 1;
+  
+  static final int CS_P_HOURS = CS_P_URL + 1;
+  
+  static final int CS_P_DURATION = CS_P_HOURS + 1;
+  
+  static final int CS_P_FUNDEDBY = CS_P_DURATION + 1;
+  
+  static final int CS_P_SCIENTIFICADVISOR = CS_P_FUNDEDBY + 1;
+  
+  static final int CS_P_BUDGET = CS_P_SCIENTIFICADVISOR + 1;
+  
+  static final int CS_P_RESEARCHGROUP = CS_P_BUDGET + 1;
+  
+  static final int CS_P_EVENTTYPE = CS_P_RESEARCHGROUP + 1;
+  
+  static final int CS_P_EVENTORGANIZER = CS_P_EVENTTYPE + 1;
+  
+  static final int CS_P_DATE = CS_P_EVENTORGANIZER + 1;
+  
+  static final int CS_P_ISBN = CS_P_DATE + 1;
+  
+  static final int CS_P_VENUE = CS_P_ISBN + 1;
+  
+  static final int CS_P_EDITORINCHIEF = CS_P_VENUE + 1;
+  
+  static final int CS_P_REPORTID = CS_P_EDITORINCHIEF + 1;
+  
+  static final int CS_P_SUPERVISOR = CS_P_REPORTID + 1;
   /** property name strings */
   static final String[] PROP_TOKEN = {
       "name",
@@ -186,7 +280,27 @@ public class EvoGenerator {
       "emailAddress",
       "telephone",
       "subOrganizationOf",
-      "worksFor"
+      "worksFor",
+      "visitsAsProfessor",
+      "durationOfVisit",
+      "visitsAsStudent",
+      "webCourseTopic",
+      "url",
+      "courseHours",
+      "projectDuration",
+      "fundedBy",
+      "scientificAdvisor",
+      "budget",
+      "researchGroup",
+      "eventType",
+      "eventOrganizer",
+      "date",
+      "isbn",
+      "venue",
+      "editorInChief",
+      "technicalReportID",
+      "supervisor"
+      
   };
   /** number of properties */
   static final int PROP_NUM = PROP_TOKEN.length;
@@ -198,10 +312,16 @@ public class EvoGenerator {
   private static final int UNDER_COURSE_NUM = 100; //must >= max faculty # * FACULTY_COURSE_MAX
   /** size of the pool of the graduate courses for one department */
   private static final int GRAD_COURSE_NUM = 100; //must >= max faculty # * FACULTY_GRADCOURSE_MAX
+  
+  private static final int WEB_COURSE_NUM = 100; //must >= max faculty # * FACULTY_GRADCOURSE_MAX
   /** size of the pool of universities */
   private static final int UNIV_NUM = 1000;
   /** size of the pool of reasearch areas */
   private static final int RESEARCH_NUM = 30;
+  private static final int PROJECT_NUM_MIN = 10;
+  private static final int PROJECT_NUM_MAX = 30;
+  private static final int EVENT_NUM_MIN = 15;
+  private static final int EVENT_NUM_MAX = 45;
   /** minimum number of departments in a university */
   private static final int DEPT_MIN = 15;
   /** maximum number of departments in a university */
@@ -239,6 +359,9 @@ public class EvoGenerator {
   private static final int UNDERSTUD_COURSE_MIN = 2;
   /** maximum number of courses taken by a undergraduate student */
   private static final int UNDERSTUD_COURSE_MAX = 4;
+  private static final int VISITSTUD_COURSE_MIN = 2;
+  /** maximum number of courses taken by a undergraduate student */
+  private static final int VISITSTUD_COURSE_MAX = 4;
   /** minimum number of courses taken by a graduate student */
   private static final int GRADSTUD_COURSE_MIN = 1;
   /** maximum number of courses taken by a graduate student */
@@ -252,6 +375,9 @@ public class EvoGenerator {
   private static final int FULLPROF_MIN = 7;
   /** maximum number of full professors in a department*/
   private static final int FULLPROF_MAX = 10;
+  private static final int VISITINGPROF_MIN = 7;
+  /** maximum number of full professors in a department*/
+  private static final int VISITINGPROF_MAX = 10;
   /** minimum number of associate professors in a department*/
   private static final int ASSOPROF_MIN = 10;
   /** maximum number of associate professors in a department*/
@@ -268,6 +394,10 @@ public class EvoGenerator {
   private static final int R_UNDERSTUD_FACULTY_MIN = 8;
   /** maximum ratio of undergraduate students to faculties in a department*/
   private static final int R_UNDERSTUD_FACULTY_MAX = 14;
+  /** minimum ratio of undergraduate students to faculties in a department*/
+  private static final int R_VISITSTUD_FACULTY_MIN = 2;
+  /** maximum ratio of undergraduate students to faculties in a department*/
+  private static final int R_VISITSTUD_FACULTY_MAX = 3;
   /** minimum ratio of graduate students to faculties in a department*/
   private static final int R_GRADSTUD_FACULTY_MIN = 3;
   /** maximum ratio of graduate students to faculties in a department*/
@@ -283,6 +413,8 @@ public class EvoGenerator {
   private static final int R_GRADSTUD_RA_MAX = 4;
   /** average ratio of undergraduate students to undergraduate student advising professors */
   private static final int R_UNDERSTUD_ADVISOR = 5;
+  /** average ratio of undergraduate students to undergraduate student advising professors */
+  private static final int R_VISITSTUD_ADVISOR = 2;
   /** average ratio of graduate students to graduate student advising professors */
   private static final int R_GRADSTUD_ADVISOR = 1;
 
@@ -347,6 +479,7 @@ public class EvoGenerator {
     /** list of authors */
     public ArrayList authors;
   }
+  
 
   /** univ-bench ontology url */
   String ontology;
@@ -356,6 +489,7 @@ public class EvoGenerator {
   private PropertyCount[] properties_;
   /** data file writer */
   private Writer writer_;
+  private Writer writer_log;
   /** generate DAML+OIL data (instead of OWL) */
   private boolean isDaml_;
   /** random number generator */
@@ -368,12 +502,15 @@ public class EvoGenerator {
   private ArrayList underCourses_;
   /** list of graduate courses generated so far (in the current department) */
   private ArrayList gradCourses_;
+  private ArrayList webCourses_;
   /** list of remaining available undergraduate courses (in the current department) */
   private ArrayList remainingUnderCourses_;
   /** list of remaining available graduate courses (in the current department) */
   private ArrayList remainingGradCourses_;
+  private ArrayList remainingWebCourses_;
   /** list of publication instances generated so far (in the current department) */
   private ArrayList publications_;
+  private ArrayList projects_;
   /** index of the full professor who has been chosen as the department chair */
   private int chair_;
   /** starting index of the universities */
@@ -384,13 +521,18 @@ public class EvoGenerator {
   static int evoParadigm = -1;
   static double evoChange = 0d;
   static int evoVersions = 0;
+  static double strict = 0; 
+  static double step = 0; 
   static int evoOnlyChanges = -1;
+  static ArrayList<Integer> classFilters = new ArrayList<Integer>();
+  static HashSet<Integer> currentFilters = new HashSet<Integer>();
   static String tempDir = System.getProperty("user.dir") + "/temp";
   static String userDir = System.getProperty("user.dir");
   static HashMap<Integer, Double> changeWeights = new HashMap<Integer, Double>();
   static HashMap<String, InstanceCount[]> fileInstanceMap = new HashMap<String, EvoGenerator.InstanceCount[]>();
   static HashMap<String, HashMap<Integer, Double>> fileWeightsMap = new HashMap<String, HashMap<Integer,Double>>();
   static int totalDeptsV0 = 0;
+  
   /**
    * main method
    */
@@ -470,6 +612,27 @@ public class EvoGenerator {
              else
                  throw new Exception();
         }  
+        else if (arg.equals("-strict")) {
+        	if (i < args.length) {
+             	arg = args[i++];
+             	strict = Double.parseDouble(arg);
+             	if(strict < 0 || strict > 1)
+             		throw new Exception();
+             	step = (double)(1-strict)/(evoVersions-1);
+             	/*classFilters.add(CS_C_FULLPROF);
+             	classFilters.add(CS_C_ASSOPROF);
+             	classFilters.add(CS_C_ASSTPROF);
+             	classFilters.add(CS_C_LECTURER);
+             	classFilters.add(CS_C_UNDERSTUD);
+             	classFilters.add(CS_C_GRADSTUD);
+             	//classFilters.add(CS_C_COURSE);
+             	classFilters.add(CS_C_GRADCOURSE);
+             	classFilters.add(CS_C_RESEARCHGROUP);*/
+             	System.out.println("step: " + step);
+             }
+             else
+                 throw new Exception();
+        }  
         else if (arg.equals("-onlyChanges")) {
         	if (i < args.length) {
              	arg = args[i++];
@@ -533,9 +696,79 @@ public class EvoGenerator {
 	}
 	long previousSize = model.size();
 	System.out.println("v0 size: " + previousSize);
+	
+	String queryString = " SELECT ?s ?p WHERE {?s ?p ?o} GROUP BY ?s ?p ORDER BY ?s ";
+	
+	Query query = QueryFactory.create(queryString);
+	
+	QueryExecution qexec = QueryExecutionFactory.create(query, model);
+	
+	ResultSet rs = qexec.execSelect();		
+	
+	Resource previous = null;
+	
+	HashMap<Node, CharacteristicSet> characteristicSetMap = new HashMap<Node, CharacteristicSet>(); 
+	
+	HashSet<Resource> properties = new HashSet<Resource>();
+
+	CharacteristicSet cs ;
+	
+	int nextInd = 0;
+	
+	int propIndex = 0;
+	
+	HashSet<Integer> objects = new HashSet<Integer>();
+	
+	while(rs.hasNext()){
+		
+	 	QuerySolution sol = rs.next();
+	 	
+	 	Resource subject = sol.getResource("s");
+	 	
+	 	Resource predicate = sol.getResource("p");
+	 			 			 	
+	 	if(!propertiesSet.containsKey(predicate.getURI())){
+	 		reversePropertiesSet.put(propIndex, predicate.getURI());
+    		propertiesSet.put(predicate.getURI(), propIndex++);	 
+    	
+    	}
+	 	
+	 	if(!subject.equals(previous) && previous != null){
+    			 				 	
+	 		cs = new CharacteristicSet(properties);
+	 		
+	 		//uniqueCharacteristicSets.add(cs);
+	 				 				 	
+	 		characteristicSetMap.put(previous.asNode(), cs);
+	 		
+	 		properties = new HashSet<Resource>();
+	 				 		
+	 		
+    	}
+	 	
+	 	if(!properties.contains(predicate))
+	 		properties.add(predicate);	 			 		 		 
+	 	
+	 	previous = subject;
+	}
+	qexec.close();
+	//don't forget the last one
+	cs = new CharacteristicSet(properties); 		
+		//uniqueCharacteristicSets.add(cs); 		 		 	
+	characteristicSetMap.put(previous.asNode(), cs);
+	
+		//System.out.println("Unique CS: " + uniqueCharacteristicSets.size());
+	System.out.println("Unique nodes with CS: " + characteristicSetMap.size());
+	HashSet<CharacteristicSet> ucs = new HashSet<CharacteristicSet>();
+	for(Node n : characteristicSetMap.keySet()){
+		ucs.add(characteristicSetMap.get(n));
+	}
+	System.out.println("Unique CS: " + ucs.size());
+	
 	model.close();
 	int i = 0;
 	while(true){
+		if(true) break;
 		try{
 			files = new File(System.getProperty("user.dir")+"/v"+i).listFiles();
 			Model modelin = ModelFactory.createDefaultModel();
@@ -562,6 +795,9 @@ public class EvoGenerator {
   
   }
 
+  public static HashMap<String, Integer> propertiesSet = new HashMap<String, Integer>();
+	public static HashMap<Integer, String> reversePropertiesSet = new HashMap<Integer, String>();
+  
   /**
    * constructor
    */
@@ -578,9 +814,12 @@ public class EvoGenerator {
     random_ = new Random();
     underCourses_ = new ArrayList();
     gradCourses_ = new ArrayList();
+    webCourses_ = new ArrayList();
     remainingUnderCourses_ = new ArrayList();
     remainingGradCourses_ = new ArrayList();
+    remainingWebCourses_ = new ArrayList();
     publications_ = new ArrayList();
+    projects_ = new ArrayList();
   }
 
   /**
@@ -601,6 +840,7 @@ public class EvoGenerator {
     else
       writer_ = new OwlWriter(this);
 
+    writer_log = new OwlWriter(this);
     startIndex_ = startIndex;
     baseSeed_ = seed;
     instances_[CS_C_UNIV].num = univNum;
@@ -673,6 +913,9 @@ public class EvoGenerator {
         case CS_C_FULLPROF:
           instances_[i].num = _getRandomFromRange(FULLPROF_MIN, FULLPROF_MAX);
           break;
+        case CS_C_VISITINGPROF:
+            instances_[i].num = _getRandomFromRange(VISITINGPROF_MIN, VISITINGPROF_MAX);
+            break;
         case CS_C_ASSOPROF:
           instances_[i].num = _getRandomFromRange(ASSOPROF_MIN, ASSOPROF_MAX);
           break;
@@ -688,6 +931,12 @@ public class EvoGenerator {
                                          R_UNDERSTUD_FACULTY_MAX *
                                          instances_[CS_C_FACULTY].total);
           break;
+        case CS_C_VISITSTUD:
+            instances_[i].num = _getRandomFromRange(R_VISITSTUD_FACULTY_MIN *
+                                           instances_[CS_C_FACULTY].total,
+                                           R_VISITSTUD_FACULTY_MAX *
+                                           instances_[CS_C_FACULTY].total);
+            break;          
         case CS_C_GRADSTUD:
           instances_[i].num = _getRandomFromRange(R_GRADSTUD_FACULTY_MIN *
                                          instances_[CS_C_FACULTY].total,
@@ -742,56 +991,62 @@ public class EvoGenerator {
     System.out.println("Completed!");
   }
   
+  static boolean globalVersionTrigger = false;
   /** Begins data generation according to the specification, for the defined number of versions */
   private void _generate(int versions) {
 	  
-	  _generate();
+	  //assignFilters(classFilters);
+	  //System.out.println("current filters: " + currentFilters.toString());
+	  _generate(); //V0
+	  //int schemaEvol = (int) Math.floor((1/step));
+	  int schemaEvol = (int)(strict*10);
+	  int schemaEvol2 = schemaEvol / (evoVersions-1);
+	  System.out.println("schema evol param: " + schemaEvol2);
 	  int howManyDepts = (int) Math.floor(totalDeptsV0*evoChange);
+	  HashMap<Integer, String> newClasses = new HashMap<Integer, String>();
+	  for(int i = 0; i < schemaEvol; i++)
+		  newClasses.put(i,"");
+
 	  double evoChangeOriginal = evoChange;
+	  boolean pub = false, conf = false, journ = false, tech = false, 
+			  book = false, thes = false, proj = false, even = false;
 	  for(int vi = 0 ; vi < evoVersions-1; vi++){
 	    	
+		  globalVersionTrigger = true;
+		  File dir = new File(System.getProperty("user.dir")+"/v"+vi);
+          dir.mkdirs();
+		  //assignFilters(classFilters);
+		  //System.out.println("current filters: " + currentFilters.toString());
 	    	int classForChange ;
 	        
-	    	//the number of depts (files) to evolve, based on the defined evoChange parameter
-	        boolean newDept = false;
-	       /* if(vi%2==0){
-	        	howManyDepts+= Math.floor(howManyDepts*evoChange);
-	        	if(howManyDepts > totalDeptsV0)
-	        		newDept = true;
-	        }*/
+	    	//the number of depts (files) to evolve, based on the defined evoChange parameter	        
+	       
 	        List<String> asList = new ArrayList<String>(fileWeightsMap.keySet());
 	        
+	        writer_log = new OwlWriter(this);	        
+            writer_log.startLogFile(dir.getAbsolutePath()+"/changes.rdf");
+            writer_log.start();
 	        for(int d = 0 ; d < howManyDepts ; d++){
-	        	    	
-	        	//instances_[CS_C_UNIV].num*instances_[CS_C_DEPT].num
-	        	/*if(d >= totalDeptsV0 || asList.size() <= 0){            			
-	        		_generateASection(1, instances_[1].count );	            	
-	            	System.out.println("generated dept");
-	        		continue;
-	        	}*/
+	        	
 	            String randomFile = asList.get(random_.nextInt(asList.size()));
 	            instances_ = fileInstanceMap.get(randomFile);
-	            
-	            	
-	            	            
+	                        
 	            asList.remove(randomFile);
 	        	
 	            //System.out.println("Selected file: " + randomFile);
 	            writer_ = new OwlWriter(this);
-	            File dir = new File(System.getProperty("user.dir")+"/v"+vi);
-	            dir.mkdirs();
+	            
 	            writer_.startFile(dir.getAbsolutePath()+"/"+randomFile);
 	            writer_.start();
 	            for(Integer nextClass : fileWeightsMap.get(randomFile).keySet()){
 	            	
 	            	classForChange = nextClass;
 	            	
-	            	if(classForChange < 2) {	            		
+	            	if(classForChange < 2) {
 	            			continue;
 	            	}
 	            	
-	            	//System.out.println("Evolving class type: " + classForChange);
-	                
+	            	if(classForChange == 4) continue;
 	            	int totalIter = (int) Math.floor(fileWeightsMap.get(randomFile).get(classForChange))/howManyDepts;
 	            	
 	                for(int i = 0; i < totalIter ; i++){
@@ -800,7 +1055,79 @@ public class EvoGenerator {
 	                			instances_[classForChange].count ); 	                			
 	                }
 	                
+	                if(nextClass == 21 ){
+	                	writer_log.addTypeClass(ontology+"WebCourse");
+	                	writer_log.addSuperClass(ontology+"WebCourse", ontology+"Course");
+	                }
+	                else if(nextClass == 20 ){
+	                	writer_log.addTypeClass(ontology+"VisitingStudent");
+	                	writer_log.addSuperClass(ontology+"VisitingStudent", ontology+"Student");
+	                }
+	                else if(nextClass == 19 ){
+	                	writer_log.addTypeClass(ontology+"VisitingProfessor");
+	                	writer_log.addSuperClass(ontology+"VisitingProfessor", ontology+"Professor");
+	                }
+	                
 	            }
+	            
+	            for(int k = 0; k < schemaEvol2; k++){
+	              	
+	            	if(newClasses.isEmpty()) break;
+	            	int newClass = _getRandomFromRange(0, newClasses.keySet().size());
+	            	int index = 0;
+	            	for(Integer s : newClasses.keySet()){
+	            		if(index == newClass){
+	            			newClass = s;
+	            			break;
+	            		}
+	            		index++;
+	            	}
+	              	/*if(newClass == 1){
+	                  	_generatePublications();
+	                  	newClasses.remove(newClass);
+	                 }*/
+	                  if(newClass == 2){
+	                  	_generateConferencePublications();
+	                  	newClasses.remove(newClass);
+	                  	writer_log.addTypeClass(ontology+"ConferencePublication");
+	                  	writer_log.addSuperClass(ontology+"ConferencePublication", ontology+"Publication");
+	                  }
+	                  if(newClass == 3){
+	                  	_generateJournalPublications();
+	                  	newClasses.remove(newClass);
+	                  	writer_log.addTypeClass(ontology+"JournalArticle");
+	                  	writer_log.addSuperClass(ontology+"JournalArticle", ontology+"Publication");
+	                  }
+	                  if(newClass == 4 ){
+	                  	_generateTechnicalReports();
+	                  	newClasses.remove(newClass);
+	                  	writer_log.addTypeClass(ontology+"TechnicalReport");
+	                  	writer_log.addSuperClass(ontology+"TechnicalReport", ontology+"Publication");
+	                  }
+	                  if(newClass == 5 ){
+	                  	_generateBooks();
+	                  	newClasses.remove(newClass);
+	                  	writer_log.addTypeClass(ontology+"Book");
+	                  	writer_log.addSuperClass(ontology+"Book", ontology+"Publication");
+	                  }
+	                  if(newClass == 6 ){
+	                  	_generateThesis();
+	                  	newClasses.remove(newClass);
+	                  	writer_log.addTypeClass(ontology+"Thesis");
+	                  	writer_log.addSuperClass(ontology+"Thesis", ontology+"Publication");
+	                  }
+	                  if(newClass == 7 ){
+	                  	_generateProjects();
+	                  	newClasses.remove(newClass);
+	                  	writer_log.addTypeClass(ontology+"Project");
+	                  }
+	                  if(newClass == 8){
+	                  	_generateEvents();
+	                  	newClasses.remove(newClass);
+	                  	writer_log.addTypeClass(ontology+"Event");
+	                  }
+	              }
+	           
 	            writer_.end();
 	            writer_.endFile();
 	            //correction
@@ -814,18 +1141,50 @@ public class EvoGenerator {
 	              for (int i = 0; i < GRAD_COURSE_NUM + (int) (GRAD_COURSE_NUM*evoChange); i++) {
 	                remainingGradCourses_.add(new Integer(i));
 	              }
+	            remainingWebCourses_.clear();
+	              for (int i = 0; i < WEB_COURSE_NUM + (int) (WEB_COURSE_NUM*evoChange); i++) {
+	                remainingWebCourses_.add(new Integer(i));
+	              }
 	            
 	            assignWeights(randomFile);	            	            
 	           
 	        }	
 	        evoChange = evoChange + evoVersions*evoChangeOriginal*evoChangeOriginal;
-	    	System.out.println(evoChange);
+	        
+	        writer_log.end();
+	        writer_log.endLogFile();
+	        
+	    	
 	    }
 	  
 	     
   }
 
-  /**
+  private void assignFilters(ArrayList<Integer> classFilters2) {
+	  
+	  	 
+	  int filters = (int) Math.ceil((classFilters.size()*step));
+	  HashSet<Integer> previousSeeds = new HashSet<Integer>();
+	  for(int i = 0; i < filters; i++){
+		
+		//int seed = random_.nextInt(classFilters.size());
+		int seed = 8;
+		previousSeeds.add(seed);
+		while(previousSeeds.contains(seed)){
+			//seed = random_.nextInt(classFilters.size());
+	  		currentFilters.add(classFilters.get(seed));
+	  		classFilters.remove(seed);
+	  		previousSeeds.add(seed);
+	  		break;
+		}
+		break;
+	  }
+	  //step += step;
+	  System.out.println(currentFilters.toString());
+	  	  
+  }
+
+/**
    * Creates a university.
    * @param index Index of the university.
    */
@@ -896,13 +1255,18 @@ public class EvoGenerator {
     gradCourses_.clear();
     remainingUnderCourses_.clear();
     remainingGradCourses_.clear();
+    remainingWebCourses_.clear();
     for (int i = 0; i < UNDER_COURSE_NUM; i++) {
       remainingUnderCourses_.add(new Integer(i));
     }
     for (int i = 0; i < GRAD_COURSE_NUM; i++) {
       remainingGradCourses_.add(new Integer(i));
     }
+    for (int i = 0; i < WEB_COURSE_NUM; i++) {
+        remainingWebCourses_.add(new Integer(i));
+      }
     publications_.clear();
+    projects_.clear();
     for (int i = 0; i < CLASS_NUM; i++) {
       instances_[i].logNum = 0;
     }
@@ -925,6 +1289,13 @@ public class EvoGenerator {
     }
 
     _generatePublications();
+   /* _generateConferencePublications();
+    _generateJournalPublications();
+    _generateTechnicalReports();
+    _generateBooks();
+    _generateThesis();
+    _generateProjects();
+    _generateEvents();*/
     _generateCourses();
     _generateRaTa();
 
@@ -951,176 +1322,67 @@ public class EvoGenerator {
    */
   private void _generateASection(int classType, int index) {
     _updateCount(classType);
-
-    
-    switch (classType) {
-      case CS_C_UNIV:
-        _generateAUniv(index);
-        break;
-      case CS_C_DEPT:
-        _generateADept(index);
-        break;
-      case CS_C_FACULTY:
-        _generateAFaculty(index);
-        break;
-      case CS_C_PROF:
-        _generateAProf(index);
-        break;
-      case CS_C_FULLPROF:
-        _generateAFullProf(index);
-        break;
-      case CS_C_ASSOPROF:
-        _generateAnAssociateProfessor(index);
-        break;
-      case CS_C_ASSTPROF:
-        _generateAnAssistantProfessor(index);
-        break;
-      case CS_C_LECTURER:
-        _generateALecturer(index);
-        break;
-      case CS_C_UNDERSTUD:
-        _generateAnUndergraduateStudent(index);
-        break;
-      case CS_C_GRADSTUD:
-        _generateAGradudateStudent(index);
-        break;
-      case CS_C_COURSE:
-        _generateACourse(index);
-        break;
-      case CS_C_GRADCOURSE:
-        _generateAGraduateCourse(index);
-        break;
-      case CS_C_RESEARCHGROUP:
-        _generateAResearchGroup(index);
-        break;
-      default:
-        break;
-    }
-  }
-  
-  
-  /**
-   * Generates an instance of the specified class
-   * @param classType Type of the instance.
-   * @param index Index of the instance.
-   */
-  private void _generateASection(int classType, int index, InstanceCount inst) {
-    _updateCount(classType, inst);
-
-    
-    switch (classType) {
-      case CS_C_UNIV:
-        _generateAUniv(index);
-        break;
-      case CS_C_DEPT:
-        _generateADept(index);
-        break;
-      case CS_C_FACULTY:
-        _generateAFaculty(index);
-        break;
-      case CS_C_PROF:
-        _generateAProf(index);
-        break;
-      case CS_C_FULLPROF:
-        _generateAFullProf(index);
-        break;
-      case CS_C_ASSOPROF:
-        _generateAnAssociateProfessor(index);
-        break;
-      case CS_C_ASSTPROF:
-        _generateAnAssistantProfessor(index);
-        break;
-      case CS_C_LECTURER:
-        _generateALecturer(index);
-        break;
-      case CS_C_UNDERSTUD:
-        _generateAnUndergraduateStudent(index);
-        break;
-      case CS_C_GRADSTUD:
-        _generateAGradudateStudent(index);
-        break;
-      case CS_C_COURSE:
-        _generateACourse(index);
-        break;
-      case CS_C_GRADCOURSE:
-        _generateAGraduateCourse(index);
-        break;
-      case CS_C_RESEARCHGROUP:
-        _generateAResearchGroup(index);
-        break;
-      default:
-        break;
-    }
-  }
-  /**
-   * Generates an instance of the specified class
-   * @param classType Type of the instance.
-   * @param index Index of the instance.
-   */
- /* private void _generateASectionIncremental(int classType, int index) {
-    _updateCount(classType);
-    double changepercentage = evoChange;
-    while(changepercentage > 0){
-    	 switch (classType) {
-         case CS_C_UNIV:
-           _generateAUniv(index);
-           changepercentage -= _changeWeight(CS_C_UNIV);
-           break;
-         case CS_C_DEPT:
-           _generateADept(index);
-           changepercentage -= _changeWeight(CS_C_UNIV);
-           break;
-         case CS_C_FACULTY:
-           _generateAFaculty(index);
-           changepercentage -= _changeWeight(CS_C_UNIV);
-           break;
-         case CS_C_PROF:
-           _generateAProf(index);
-           changepercentage -= _changeWeight(CS_C_UNIV);
-           break;
-         case CS_C_FULLPROF:
-           _generateAFullProf(index);
-           changepercentage -= _changeWeight(CS_C_UNIV);
-           break;
-         case CS_C_ASSOPROF:
-           _generateAnAssociateProfessor(index);
-           changepercentage -= _changeWeight(CS_C_UNIV);
-           break;
-         case CS_C_ASSTPROF:
-           _generateAnAssistantProfessor(index);
-           changepercentage -= _changeWeight(CS_C_UNIV);
-           break;
-         case CS_C_LECTURER:
-           _generateALecturer(index);
-           changepercentage -= _changeWeight(CS_C_UNIV);
-           break;
-         case CS_C_UNDERSTUD:
-           _generateAnUndergraduateStudent(index);
-           changepercentage -= _changeWeight(CS_C_UNIV);
-           break;
-         case CS_C_GRADSTUD:
-           _generateAGradudateStudent(index);
-           changepercentage -= _changeWeight(CS_C_UNIV);
-           break;
-         case CS_C_COURSE:
-           _generateACourse(index);
-           changepercentage -= _changeWeight(CS_C_UNIV);
-           break;
-         case CS_C_GRADCOURSE:
-           _generateAGraduateCourse(index);
-           changepercentage -= _changeWeight(CS_C_UNIV);
-           break;
-         case CS_C_RESEARCHGROUP:
-           _generateAResearchGroup(index);
-           changepercentage -= _changeWeight();
-           break;
-         default:
-           break;
-       }
-    }
    
-  }*/
-
+    /*if(classType != CS_C_UNIV && classType != CS_C_DEPT && classType != CS_C_FACULTY && classType != CS_C_PROF &&
+    		 classType != CS_C_COURSE && !currentFilters.contains(classType)) 
+    	return;*/
+    
+    switch (classType) {
+      case CS_C_UNIV:
+        _generateAUniv(index);
+        break;
+      case CS_C_DEPT:
+        _generateADept(index);
+        break;
+      case CS_C_FACULTY:
+        _generateAFaculty(index);
+        break;
+      case CS_C_PROF:
+        _generateAProf(index);
+        break;
+      case CS_C_FULLPROF:
+        _generateAFullProf(index);
+        break;
+      case CS_C_ASSOPROF:
+        _generateAnAssociateProfessor(index);
+        break;
+      case CS_C_ASSTPROF:
+        _generateAnAssistantProfessor(index);
+        break;
+      case CS_C_LECTURER:
+        _generateALecturer(index);
+        break;
+      case CS_C_UNDERSTUD:
+        _generateAnUndergraduateStudent(index);
+        break;
+      case CS_C_GRADSTUD:
+        _generateAGradudateStudent(index);
+        break;
+      case CS_C_COURSE:
+        _generateACourse(index);
+        break;
+      case CS_C_GRADCOURSE:
+        _generateAGraduateCourse(index);
+        break;
+      case CS_C_WEBCOURSE:
+          _generateAWebCourse(index);
+          break;
+      case CS_C_RESEARCHGROUP:
+        _generateAResearchGroup(index);
+        break;
+      case CS_C_VISITINGPROF:
+          _generateAVisitingProf(index);
+          break;
+      case CS_C_VISITSTUD:
+    	  _generateAVisitingStudent(index);
+          break;          
+      default:
+        break;
+    }
+  }
+  
+  
+ 
   public void assignWeights(String fileName){
 	  
 	       	     
@@ -1154,16 +1416,20 @@ public class EvoGenerator {
 	  changeWeights.put(CS_C_DEPT, Math.floor(instances_[CS_C_DEPT].num*evoChange)*0.2);
 	  changeWeights.put(CS_C_FACULTY, Math.floor(instances_[CS_C_FACULTY].num*evoChange));
 	  changeWeights.put(CS_C_PROF, Math.floor(instances_[CS_C_PROF].num*evoChange));
-	  changeWeights.put(CS_C_FULLPROF, Math.floor(instances_[CS_C_FULLPROF].num*evoChange)*1.6);
-	  changeWeights.put(CS_C_ASSOPROF, Math.floor(instances_[CS_C_ASSOPROF].num*evoChange)*2.2);
-	  changeWeights.put(CS_C_ASSTPROF, Math.floor(instances_[CS_C_ASSTPROF].num*evoChange)*1.8);
-	  changeWeights.put(CS_C_LECTURER, Math.floor(instances_[CS_C_LECTURER].num*evoChange)*1.1);
-	  changeWeights.put(CS_C_UNDERSTUD, Math.floor(instances_[CS_C_UNDERSTUD].num*evoChange)*75);
-	  changeWeights.put(CS_C_GRADSTUD, Math.floor(instances_[CS_C_GRADSTUD].num*evoChange)*24);
-	  changeWeights.put(CS_C_COURSE, Math.floor(instances_[CS_C_COURSE].num*evoChange)*20);
-	  changeWeights.put(CS_C_GRADCOURSE, Math.floor(instances_[CS_C_GRADCOURSE].num*evoChange)*10.1);
-	  changeWeights.put(CS_C_RESEARCHGROUP, Math.floor(instances_[CS_C_RESEARCHGROUP].num*evoChange)*2.8);
-	  
+	  changeWeights.put(CS_C_FULLPROF, Math.floor(instances_[CS_C_FULLPROF].num*evoChange)*16);
+	  changeWeights.put(CS_C_ASSOPROF, Math.floor(instances_[CS_C_ASSOPROF].num*evoChange)*22);
+	  changeWeights.put(CS_C_ASSTPROF, Math.floor(instances_[CS_C_ASSTPROF].num*evoChange)*18);	  
+	  changeWeights.put(CS_C_LECTURER, Math.floor(instances_[CS_C_LECTURER].num*evoChange)*11);
+	  changeWeights.put(CS_C_UNDERSTUD, Math.floor(instances_[CS_C_UNDERSTUD].num*evoChange)*35);
+	  changeWeights.put(CS_C_GRADSTUD, Math.floor(instances_[CS_C_GRADSTUD].num*evoChange)*24);	  
+	  changeWeights.put(CS_C_COURSE, Math.floor(UNDER_COURSE_NUM*evoChange));//*20);
+	  changeWeights.put(CS_C_GRADCOURSE, Math.floor(GRAD_COURSE_NUM*evoChange));//*10.1);	  
+	  changeWeights.put(CS_C_RESEARCHGROUP, Math.floor(instances_[CS_C_RESEARCHGROUP].num*evoChange)*28);
+	  changeWeights.put(CS_C_VISITINGPROF, Math.floor(instances_[CS_C_VISITINGPROF].num*evoChange)*18);
+	  changeWeights.put(CS_C_VISITSTUD, Math.floor(instances_[CS_C_VISITSTUD].num*evoChange)*14);
+	  changeWeights.put(CS_C_PROJECT, Math.floor(instances_[CS_C_PROJECT].num*evoChange)*14);
+	  changeWeights.put(CS_C_WEBCOURSE, Math.floor(WEB_COURSE_NUM*evoChange));//*61);
+	  changeWeights.put(CS_C_PUBLICATION, Math.floor(instances_[CS_C_PUBLICATION].num*evoChange)*61);
 	  fileWeightsMap.put(fileName, changeWeights);
   }
   /**
@@ -1194,7 +1460,7 @@ public class EvoGenerator {
    */
   private void _generateAFaculty(int index) {
     writer_.startSection(CS_C_FACULTY, _getId(CS_C_FACULTY, index));
-    _generateAFaculty_a(CS_C_FACULTY, index);
+    _generateAFaculty_a(CS_C_FACULTY, index, _getId(CS_C_FACULTY, index));
     writer_.endSection(CS_C_FACULTY);
   }
 
@@ -1203,7 +1469,7 @@ public class EvoGenerator {
    * @param type Type of the faculty.
    * @param index Index of the instance within its type.
    */
-  private void _generateAFaculty_a(int type, int index) {
+  private void _generateAFaculty_a(int type, int index, String id) {
     int indexInFaculty;
     int courseNum;
     int courseIndex;
@@ -1213,30 +1479,65 @@ public class EvoGenerator {
     indexInFaculty = instances_[CS_C_FACULTY].count - 1;
 
     writer_.addProperty(CS_P_NAME, _getRelativeName(type, index), false);
-
+    if(globalVersionTrigger){
+    	writer_log.addPropertyInstance(id, ontology+"#name", _getRelativeName(type, index), false );    	
+    }
     //undergradutate courses
     courseNum = _getRandomFromRange(FACULTY_COURSE_MIN, FACULTY_COURSE_MAX);
     for (int i = 0; i < courseNum; i++) {
       courseIndex = _AssignCourse(indexInFaculty);
       writer_.addProperty(CS_P_TEACHEROF, _getId(CS_C_COURSE, courseIndex), true);
+      if(globalVersionTrigger){
+      	writer_log.addPropertyInstance(id, ontology+"#teacherOf", _getId(CS_C_COURSE, courseIndex), true );    	
+      }
     }
     //gradutate courses
     courseNum = _getRandomFromRange(FACULTY_GRADCOURSE_MIN, FACULTY_GRADCOURSE_MAX);
     for (int i = 0; i < courseNum; i++) {
       courseIndex = _AssignGraduateCourse(indexInFaculty);
       writer_.addProperty(CS_P_TEACHEROF, _getId(CS_C_GRADCOURSE, courseIndex), true);
+      if(globalVersionTrigger){
+        	writer_log.addPropertyInstance(id, ontology+"#teacherOf", _getId(CS_C_GRADCOURSE, courseIndex), true );    	
+      }
     }
+    for (int i = 0; i < courseNum; i++) {
+        courseIndex = _AssignWebCourse(indexInFaculty);
+        writer_.addProperty(CS_P_TEACHEROF, _getId(CS_C_WEBCOURSE, courseIndex), true);
+        if(globalVersionTrigger){
+        	writer_log.addPropertyInstance(id, ontology+"#teacherOf", _getId(CS_C_WEBCOURSE, courseIndex), true );    	
+        }
+      }
     //person properties
-    writer_.addProperty(CS_P_UNDERGRADFROM, CS_C_UNIV,
-                       _getId(CS_C_UNIV, random_.nextInt(UNIV_NUM)));
+    String n = _getId(CS_C_UNIV, random_.nextInt(UNIV_NUM));
+    writer_.addProperty(CS_P_UNDERGRADFROM, CS_C_UNIV, n);
+    if(globalVersionTrigger){
+    	writer_log.addPropertyInstance(id, ontology+"#undergraduateDegreeFrom", n, true );    	
+    }
+    n = _getId(CS_C_UNIV, random_.nextInt(UNIV_NUM));
     writer_.addProperty(CS_P_GRADFROM, CS_C_UNIV,
-                       _getId(CS_C_UNIV, random_.nextInt(UNIV_NUM)));
+                       n);
+    if(globalVersionTrigger){
+    	writer_log.addPropertyInstance(id, ontology+"#mastersDegreeFrom", n, true );    	
+    }
+    n = _getId(CS_C_UNIV, random_.nextInt(UNIV_NUM));
     writer_.addProperty(CS_P_DOCFROM, CS_C_UNIV,
-                       _getId(CS_C_UNIV, random_.nextInt(UNIV_NUM)));
+                       n);
+    if(globalVersionTrigger){
+    	writer_log.addPropertyInstance(id, ontology+"#doctoralDegreeFrom", n, true );    	
+    }
     writer_.addProperty(CS_P_WORKSFOR,
                        _getId(CS_C_DEPT, instances_[CS_C_DEPT].count - 1), true);
+    if(globalVersionTrigger){
+    	writer_log.addPropertyInstance(id, ontology+"#worksFor",  _getId(CS_C_DEPT, instances_[CS_C_DEPT].count - 1), true );    	
+    }
     writer_.addProperty(CS_P_EMAIL, _getEmail(type, index), false);
+    if(globalVersionTrigger){
+    	writer_log.addPropertyInstance(id, ontology+"#email",  _getEmail(type, index), false );    	
+    }
     writer_.addProperty(CS_P_TELEPHONE, "xxx-xxx-xxxx", false);
+    if(globalVersionTrigger){
+    	writer_log.addPropertyInstance(id, ontology+"#telephone",  "xxx-xxx-xxxx", false );    	
+    }
   }
 
   /**
@@ -1280,6 +1581,22 @@ public class EvoGenerator {
 
     return course.globalIndex;
   }
+  
+  private int _AssignWebCourse(int indexInFaculty) {
+	    //NOTE: this line, although overriden by the next one, is deliberately kept
+	    // to guarantee identical random number generation to the previous version.
+	    int pos = _getRandomFromRange(0, remainingWebCourses_.size() - 1);
+	    pos = 0; //fetch courses in sequence
+
+	    CourseInfo course = new CourseInfo();
+	    course.indexInFaculty = indexInFaculty;
+	    course.globalIndex = ( (Integer) remainingWebCourses_.get(pos)).intValue();
+	    webCourses_.add(course);
+
+	    remainingWebCourses_.remove(pos);
+
+	    return course.globalIndex;
+	  }
 
   /**
    * Generates a professor instance.
@@ -1287,7 +1604,7 @@ public class EvoGenerator {
    */
   private void _generateAProf(int index) {
     writer_.startSection(CS_C_PROF, _getId(CS_C_PROF, index));
-    _generateAProf_a(CS_C_PROF, index);
+    _generateAProf_a(CS_C_PROF, index, _getId(CS_C_PROF, index));
     writer_.endSection(CS_C_PROF);
   }
 
@@ -1296,11 +1613,15 @@ public class EvoGenerator {
    * @param type Type of the professor.
    * @param index Index of the intance within its type.
    */
-  private void _generateAProf_a(int type, int index) {
-    _generateAFaculty_a(type, index);
+  private void _generateAProf_a(int type, int index, String id) {
+    _generateAFaculty_a(type, index, id);
+    String ri = _getRelativeName(CS_C_RESEARCH,
+            random_.nextInt(RESEARCH_NUM));
     writer_.addProperty(CS_P_RESEARCHINTEREST,
-                       _getRelativeName(CS_C_RESEARCH,
-                                       random_.nextInt(RESEARCH_NUM)), false);
+                      ri , false);
+    if(globalVersionTrigger){
+    	writer_log.addPropertyInstance(id, ontology+"#researchInterest", ri, false );    	
+    }
   }
 
   /**
@@ -1312,13 +1633,46 @@ public class EvoGenerator {
 
     id = _getId(CS_C_FULLPROF, index);
     writer_.startSection(CS_C_FULLPROF, id);
-    _generateAProf_a(CS_C_FULLPROF, index);
+    if(globalVersionTrigger){
+    	writer_log.addPropertyInstance(id, RDF.type.getURI(), ontology+"#FullProfessor", true);    	
+    }
+    _generateAProf_a(CS_C_FULLPROF, index, id);
     if (index == chair_) {
       writer_.addProperty(CS_P_HEADOF,
                          _getId(CS_C_DEPT, instances_[CS_C_DEPT].count - 1), true);
-    }
+      if(globalVersionTrigger){
+      	writer_log.addPropertyInstance(id, ontology+"#headOf", _getId(CS_C_DEPT, instances_[CS_C_DEPT].count - 1), true);    	
+      }
+    }   
     writer_.endSection(CS_C_FULLPROF);
     _assignFacultyPublications(id, FULLPROF_PUB_MIN, FULLPROF_PUB_MAX);
+  }
+  
+  /**
+   * Generates a full professor instances.
+   * @param index Index of the full professor.
+   */
+  private void _generateAVisitingProf(int index) {
+    String id;
+
+    id = _getId(CS_C_VISITINGPROF, index);
+    writer_.startSection(CS_C_VISITINGPROF, id);
+    if(globalVersionTrigger){
+    	writer_log.addPropertyInstance(id, RDF.type.getURI(), ontology+"#VisitingProfessor", true);    	
+    }
+    _generateAProf_a(CS_C_VISITINGPROF, index, id);
+    writer_.addProperty(CS_P_VISITSASPROF, CS_C_UNIV,
+            _getId(CS_C_UNIV, random_.nextInt(UNIV_NUM)));
+    if(globalVersionTrigger){
+    	writer_log.addPropertyInstance(id, ontology+"#visitsAsProfessor", _getId(CS_C_UNIV, random_.nextInt(UNIV_NUM)), true);    	
+    }
+    String n = _getRandomFromRange(1, 10)+" month(s)";
+    writer_.addProperty(CS_P_VISITDURATION, n ,false);
+    if(globalVersionTrigger){
+    	writer_log.addPropertyInstance(id, ontology+"#visitDuration", n, false);    	
+    }
+    writer_.endSection(CS_C_VISITINGPROF);
+   
   }
 
   /**
@@ -1328,9 +1682,13 @@ public class EvoGenerator {
   private void _generateAnAssociateProfessor(int index) {
     String id = _getId(CS_C_ASSOPROF, index);
     writer_.startSection(CS_C_ASSOPROF, id);
-    _generateAProf_a(CS_C_ASSOPROF, index);
+    if(globalVersionTrigger){
+    	writer_log.addPropertyInstance(id, RDF.type.getURI(), ontology+"#AssociateProfessor", true);    	
+    }
+    _generateAProf_a(CS_C_ASSOPROF, index, id);
     writer_.endSection(CS_C_ASSOPROF);
     _assignFacultyPublications(id, ASSOPROF_PUB_MIN, ASSOPROF_PUB_MAX);
+    
   }
 
   /**
@@ -1340,7 +1698,10 @@ public class EvoGenerator {
   private void _generateAnAssistantProfessor(int index) {
     String id = _getId(CS_C_ASSTPROF, index);
     writer_.startSection(CS_C_ASSTPROF, id);
-    _generateAProf_a(CS_C_ASSTPROF, index);
+    if(globalVersionTrigger){
+    	writer_log.addPropertyInstance(id, RDF.type.getURI(), ontology+"#AssistantProfessor", true);    	
+    }
+    _generateAProf_a(CS_C_ASSTPROF, index, id);
     writer_.endSection(CS_C_ASSTPROF);
     _assignFacultyPublications(id, ASSTPROF_PUB_MIN, ASSTPROF_PUB_MAX);
   }
@@ -1352,7 +1713,10 @@ public class EvoGenerator {
   private void _generateALecturer(int index) {
     String id = _getId(CS_C_LECTURER, index);
     writer_.startSection(CS_C_LECTURER, id);
-    _generateAFaculty_a(CS_C_LECTURER, index);
+    if(globalVersionTrigger){
+    	writer_log.addPropertyInstance(id, RDF.type.getURI(), ontology+"#Lecturer", true);    	
+    }
+    _generateAFaculty_a(CS_C_LECTURER, index, id);
     writer_.endSection(CS_C_LECTURER);
     _assignFacultyPublications(id, LEC_PUB_MIN, LEC_PUB_MAX);
   }
@@ -1405,8 +1769,60 @@ public class EvoGenerator {
   private void _generatePublications() {
     for (int i = 0; i < publications_.size(); i++) {
       _generateAPublication( (PublicationInfo) publications_.get(i));
+      if(globalVersionTrigger){
+    	  PublicationInfo pub = (PublicationInfo) publications_.get(i);
+    	  writer_log.addPropertyInstance(pub.id, RDF.type.getURI(), ontology+"#Publication", true);
+    	  writer_log.addPropertyInstance(pub.id, ontology+"#name", pub.name, false);
+    	  for(String author : (ArrayList<String>) pub.authors){
+    		  writer_log.addPropertyInstance(pub.id, ontology+"#author", author, true);  
+    	  }
+      }
     }
   }
+  
+  private void _generateConferencePublications() {
+	    for (int i = 0; i < publications_.size()/25; i++) {
+	      _generateAConferencePublication( (PublicationInfo) publications_.get(i));
+	    }
+	  }
+  
+  private void _generateJournalPublications() {
+	    for (int i = 0; i < publications_.size()/20; i++) {
+	      _generateAJournalPublication( (PublicationInfo) publications_.get(i));
+	    }
+	  }
+  
+  private void _generateTechnicalReports() {
+	    for (int i = 0; i < publications_.size()/10; i++) {
+	      _generateATechnicalReport( (PublicationInfo) publications_.get(i));
+	    }
+	  }
+  
+  private void _generateBooks() {
+	    for (int i = 0; i < publications_.size()/15; i++) {
+	      _generateABook( (PublicationInfo) publications_.get(i));
+	    }
+	  }
+  
+  private void _generateThesis() {
+	    for (int i = 0; i < publications_.size()/20; i++) {
+	      _generateAThesis( (PublicationInfo) publications_.get(i));
+	    }
+	  }
+  
+  private void _generateProjects() {
+	  int num = _getRandomFromRange(PROJECT_NUM_MIN, PROJECT_NUM_MAX);
+	    for (int i = 0; i < num; i++) {
+	      _generateAProject( _getRandomFromRange(150, 43958) );
+	    }
+	  }
+  
+  private void _generateEvents() {
+	  int num = _getRandomFromRange(EVENT_NUM_MIN, EVENT_NUM_MAX);
+	    for (int i = 0; i < num; i++) {
+	      _generateAnEvent(_getRandomFromRange(150, 43958) );
+	    }
+	  }
 
   /**
    * Generates a publication instance.
@@ -1421,18 +1837,262 @@ public class EvoGenerator {
     }
     writer_.endSection(CS_C_PUBLICATION);
   }
+  
+  private void _generateAConferencePublication(PublicationInfo publication) {
+	    instances_[CS_C_CONFPUBLICATION].count++;
+	    instances_[CS_C_CONFPUBLICATION].num++;
+	    writer_.startSection(CS_C_CONFPUBLICATION, publication.id);
+	    writer_.addProperty(CS_P_NAME, "Conference " + publication.name, false);
+	    for (int i = 0; i < publication.authors.size(); i++) {
+	      writer_.addProperty(CS_P_PUBLICATIONAUTHOR,
+	                         (String) publication.authors.get(i), true);
+	    }
+	    String n = "Venue"+_getRandomFromRange(0, 1500);
+	    writer_.addProperty(CS_P_VENUE, n, false);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(publication.id, ontology+"#venue", n, false);
+	    }
+	    n = ""+_getRandomFromRange(1, 28)+"-"+_getRandomFromRange(1, 12)+"-"+_getRandomFromRange(2000, 2016);
+	    writer_.addProperty(CS_P_DATE, n, false);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(publication.id, ontology+"#date", n, false);
+	    }
+	    n = "ISBN"+System.nanoTime();
+	    writer_.addProperty(CS_P_ISBN, n, false);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(publication.id, ontology+"#isbn", n, false);
+	    }
+	    writer_.endSection(CS_C_CONFPUBLICATION);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(publication.id, RDF.type.getURI(), ontology+"#ConferencePublication", true);
+	    	  writer_log.addPropertyInstance(publication.id, ontology+"#name", "Conference " + publication.name, false);
+	    	  for(String author : (ArrayList<String>) publication.authors){
+	    		  writer_log.addPropertyInstance(publication.id, ontology+"#author", author, true);  
+	    	  }	    	  
+	     }
+	   
+}
+  
+  private void _generateAJournalPublication(PublicationInfo publication) {
+	  instances_[CS_C_JOURNALPUBLICATION].count++;
+	  instances_[CS_C_JOURNALPUBLICATION].num++;
+	    writer_.startSection(CS_C_JOURNALPUBLICATION, publication.id);
+	    String n = "Journal " + _getRandomFromRange(1, 2500);
+	    publication.name = n;
+	    writer_.addProperty(CS_P_NAME, publication.name, false);
+	    for (int i = 0; i < publication.authors.size(); i++) {
+	      writer_.addProperty(CS_P_PUBLICATIONAUTHOR,
+	                         (String) publication.authors.get(i), true);
+	    }
+	    int advisor = random_.nextInt(instances_[CS_C_FULLPROF].total);
+	    writer_.addProperty(CS_P_EDITORINCHIEF,
+	                         _getId(CS_C_FULLPROF, advisor), true);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(publication.id, ontology+"#editorInChief",_getId(CS_C_FULLPROF, advisor) , true);
+	    }
+	    n = ""+_getRandomFromRange(1, 28)+"-"+_getRandomFromRange(1, 12)+"-"+_getRandomFromRange(2000, 2016);
+	    writer_.addProperty(CS_P_DATE,n, false);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(publication.id, ontology+"#date",n , false);
+	    }
+	    n = "ISBN"+System.nanoTime();
+	    writer_.addProperty(CS_P_ISBN, n, false);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(publication.id, ontology+"#isbn",n , false);
+	    }
+	    writer_.endSection(CS_C_JOURNALPUBLICATION);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(publication.id, RDF.type.getURI(), ontology+"#JournalPublication", true);
+	    	  writer_log.addPropertyInstance(publication.id, ontology+"#name", "Conference " + publication.name, false);
+	    	  for(String author : (ArrayList<String>) publication.authors){
+	    		  writer_log.addPropertyInstance(publication.id, ontology+"#author", author, true);  
+	    	  }	    	  
+	     }
+	  }
+  
+  private void _generateATechnicalReport(PublicationInfo publication) {
+	  instances_[CS_C_TECHNICALREPORT].count++;
+	  instances_[CS_C_TECHNICALREPORT].num++;
+	    writer_.startSection(CS_C_TECHNICALREPORT, publication.id);
+	    
+	    publication.name = "TR " + _getRandomFromRange(1, 2500);
+	    writer_.addProperty(CS_P_NAME, publication.name, false);
+	    
+	    for (int i = 0; i < publication.authors.size(); i++) {
+	      writer_.addProperty(CS_P_PUBLICATIONAUTHOR,
+	                         (String) publication.authors.get(i), true);
+	    }	    
+	    String n = ""+_getRandomFromRange(1, 28)+"-"+_getRandomFromRange(1, 12)+"-"+_getRandomFromRange(2000, 2016);
+	    writer_.addProperty(CS_P_DATE, n, false);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(publication.id, ontology+"#date",n , false);
+	    }
+	    n = "TR-ID-"+System.nanoTime();
+	    writer_.addProperty(CS_P_REPORTID, n, false);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(publication.id, ontology+"#technicalReportID",n , false);
+	    }
+	    writer_.endSection(CS_C_TECHNICALREPORT);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(publication.id, RDF.type.getURI(), ontology+"#TechnicalReport", true);
+	    	  writer_log.addPropertyInstance(publication.id, ontology+"#name", publication.name, false);
+	    	  for(String author : (ArrayList<String>) publication.authors){
+	    		  writer_log.addPropertyInstance(publication.id, ontology+"#author", author, true);  
+	    	  }	    	  
+	     }
+	  }
+  
+  private void _generateABook(PublicationInfo publication) {
+	  instances_[CS_C_BOOK].count++;
+	  instances_[CS_C_BOOK].num++;
+	    writer_.startSection(CS_C_BOOK, publication.id);
+	    publication.name = "Book " + _getRandomFromRange(1, 2500);
+	    writer_.addProperty(CS_P_NAME, publication.name, false);
+	    for (int i = 0; i < publication.authors.size(); i++) {
+	      writer_.addProperty(CS_P_PUBLICATIONAUTHOR,
+	                         (String) publication.authors.get(i), true);
+	    }	    
+	    String n = ""+_getRandomFromRange(1, 28)+"-"+_getRandomFromRange(1, 12)+"-"+_getRandomFromRange(2000, 2016);
+	    writer_.addProperty(CS_P_DATE, n, false);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(publication.id, ontology+"#date",n , false);
+	    }
+	    n = "ISBN"+System.nanoTime();
+	    writer_.addProperty(CS_P_ISBN, n, false);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(publication.id, ontology+"#isbn",n , false);
+	    }
+	    writer_.endSection(CS_C_BOOK);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(publication.id, RDF.type.getURI(), ontology+"#Book", true);
+	    	  writer_log.addPropertyInstance(publication.id, ontology+"#name", "Conference " + publication.name, false);
+	    	  for(String author : (ArrayList<String>) publication.authors){
+	    		  writer_log.addPropertyInstance(publication.id, ontology+"#author", author, true);  
+	    	  }	    	  
+	     }
+	  }
+
+  private void _generateAThesis(PublicationInfo publication) {
+	  instances_[CS_C_THESIS].count++;
+	  instances_[CS_C_THESIS].num++;
+	    writer_.startSection(CS_C_THESIS, publication.id);
+	    publication.name = "Thesis " + _getRandomFromRange(1, 2500);
+	    writer_.addProperty(CS_P_NAME, publication.name, false);
+	    for (int i = 0; i < publication.authors.size(); i++) {
+	      writer_.addProperty(CS_P_PUBLICATIONAUTHOR,
+	                         (String) publication.authors.get(i), true);
+	    }	    
+	    String n = ""+_getRandomFromRange(1, 28)+"-"+_getRandomFromRange(1, 12)+"-"+_getRandomFromRange(2000, 2016);
+	    writer_.addProperty(CS_P_DATE, n, false);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(publication.id, ontology+"#date",n , false);
+	    }
+	    int advisor = random_.nextInt(instances_[CS_C_FULLPROF].total);
+	    writer_.addProperty(CS_P_SUPERVISOR,
+	                         _getId(CS_C_FULLPROF, advisor), true);	    
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(publication.id, ontology+"#supervisor",_getId(CS_C_FULLPROF, advisor) , true);
+	    }
+	    writer_.endSection(CS_C_THESIS);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(publication.id, RDF.type.getURI(), ontology+"#Thesis", true);
+	    	  writer_log.addPropertyInstance(publication.id, ontology+"#name", publication.name, false);
+	    	  for(String author : (ArrayList<String>) publication.authors){
+	    		  writer_log.addPropertyInstance(publication.id, ontology+"#author", author, true);  
+	    	  }	    	  
+	     }
+	  }
+  
+  private void _generateAProject(int index) {
+	  	String id = _getId(CS_C_PROJECT, index);
+	    writer_.startSection(CS_C_PROJECT, id);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(id, RDF.type.getURI(), ontology+"#Project", true);	    	  	    	 
+	    }
+	    writer_.addProperty(CS_P_NAME, "Project", false);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(id, ontology+"#name", "Project", false);	    	  	    	 
+	    }
+	    String n = _getRandomFromRange(1,50)+" month(s)";
+	    writer_.addProperty(CS_P_DURATION, n, false);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(id, ontology+"#duration", n, false);	    	  	    	 
+	    }
+	    n = _getRandomFromRange(100000,5000000)+" euro(s)";
+	    writer_.addProperty(CS_P_BUDGET,  n, false);	    
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(id, ontology+"#budget", n, false);	    	  	    	 
+	    }
+	    int advisor = random_.nextInt(instances_[CS_C_FULLPROF].total);
+	    writer_.addProperty(CS_P_SCIENTIFICADVISOR,
+	                         _getId(CS_C_FULLPROF, advisor), true);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(id, ontology+"#scientificAdvisor", _getId(CS_C_FULLPROF, advisor), true);	    	  	    	 
+	    }
+	    int group = random_.nextInt(instances_[CS_C_RESEARCHGROUP].total);
+	    writer_.addProperty(CS_P_RESEARCHGROUP,
+	    		_getId(CS_C_RESEARCHGROUP, group), true);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(id, ontology+"#researchGroup", _getId(CS_C_RESEARCHGROUP, group), true);	    	  	    	 
+	    }
+	    int uni = random_.nextInt(instances_[CS_C_UNIV].total);
+	    writer_.addProperty(CS_P_FUNDEDBY,
+	    		_getId(CS_C_UNIV, uni), true);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(id, ontology+"#fundedBy", _getId(CS_C_UNIV, uni), true);	    	  	    	 
+	    }
+	    
+	    writer_.endSection(CS_C_PROJECT);
+	    
+	  }
+  
+  private void _generateAnEvent(int index) {
+	  	String id = _getId(CS_C_EVENT, index);
+	    writer_.startSection(CS_C_EVENT, id);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(id, RDF.type.getURI(), ontology+"#Event", true);	    	  	    	 
+	    }
+	    writer_.addProperty(CS_P_NAME, "Event", false);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(id, ontology+"#name", "Event", false);	    	  	    	 
+	    }
+	    String n = CS_EVENT_TYPES[_getRandomFromRange(0,2)];
+	    writer_.addProperty(CS_P_EVENTTYPE, n, false);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(id, ontology+"#eventType", n, false);	    	  	    	 
+	    }
+	    int organizer = random_.nextInt(instances_[CS_C_FULLPROF].total);
+	    writer_.addProperty(CS_P_EVENTORGANIZER,
+	                         _getId(CS_C_FULLPROF, organizer), true);	 
+	    if(globalVersionTrigger){
+	    	  writer_log.addPropertyInstance(id, ontology+"#eventOrganizer", _getId(CS_C_FULLPROF, organizer), true);	    	  	    	 
+	    }
+	    writer_.endSection(CS_C_EVENT);
+	  }
 
   /**
    * Generates properties for the specified student instance.
    * @param type Type of the student.
    * @param index Index of the instance within its type.
    */
-  private void _generateAStudent_a(int type, int index) {
-    writer_.addProperty(CS_P_NAME, _getRelativeName(type, index), false);
+  private void _generateAStudent_a(int type, int index, String id) {
+    writer_.addProperty(CS_P_NAME, _getRelativeName(type, index), false);    
+    if(globalVersionTrigger){	    	  
+    	  writer_log.addPropertyInstance(id, ontology+"#name", _getRelativeName(type, index), false);	    	  	    	 
+    }
     writer_.addProperty(CS_P_MEMBEROF,
                        _getId(CS_C_DEPT, instances_[CS_C_DEPT].count - 1), true);
+    if(globalVersionTrigger){	    	  
+  	  writer_log.addPropertyInstance(id, ontology+"#memberOf", _getId(CS_C_DEPT, instances_[CS_C_DEPT].count - 1), true);	    	  	    	 
+    }
     writer_.addProperty(CS_P_EMAIL, _getEmail(type, index), false);
+    if(globalVersionTrigger){	    	  
+  	  writer_log.addPropertyInstance(id, ontology+"#email", _getEmail(type, index), false);	    	  	    	 
+    }
     writer_.addProperty(CS_P_TELEPHONE, "xxx-xxx-xxxx", false);
+    if(globalVersionTrigger){	    	  
+    	  writer_log.addPropertyInstance(id, ontology+"#telephone", "xxx-xxx-xxxx", false);	    	  	    	 
+      }
   }
 
   /**
@@ -1442,21 +2102,64 @@ public class EvoGenerator {
   private void _generateAnUndergraduateStudent(int index) {
     int n;
     ArrayList list;
-
-    writer_.startSection(CS_C_UNDERSTUD, _getId(CS_C_UNDERSTUD, index));
-    _generateAStudent_a(CS_C_UNDERSTUD, index);
+    String id = _getId(CS_C_UNDERSTUD, index);
+    writer_.startSection(CS_C_UNDERSTUD, id);
+    _generateAStudent_a(CS_C_UNDERSTUD, index, id);
     n = _getRandomFromRange(UNDERSTUD_COURSE_MIN, UNDERSTUD_COURSE_MAX);
     list = _getRandomList(n, 0, underCourses_.size() - 1);
     for (int i = 0; i < list.size(); i++) {
       CourseInfo info = (CourseInfo) underCourses_.get( ( (Integer) list.get(i)).
           intValue());
       writer_.addProperty(CS_P_TAKECOURSE, _getId(CS_C_COURSE, info.globalIndex), true);
+      if(globalVersionTrigger){	    	  
+    	  writer_log.addPropertyInstance(id, ontology+"#takesCourse", _getId(CS_C_COURSE, info.globalIndex), true);	    	  	    	 
+      }
     }
     if (0 == random_.nextInt(R_UNDERSTUD_ADVISOR)) {
-      writer_.addProperty(CS_P_ADVISOR, _selectAdvisor(), true);
+    	String ad = _selectAdvisor();
+      writer_.addProperty(CS_P_ADVISOR, ad, true);
+      if(globalVersionTrigger){	    	  
+    	  writer_log.addPropertyInstance(id, ontology+"#advisor", ad, true);	    	  	    	 
+      }
     }
     writer_.endSection(CS_C_UNDERSTUD);
   }
+  
+  private void _generateAVisitingStudent(int index) {
+	    int n;
+	    ArrayList list;	    
+	    String id = _getId(CS_C_VISITSTUD, index);
+	    writer_.startSection(CS_C_VISITSTUD, id);
+	    _generateAStudent_a(CS_C_VISITSTUD, index, id);
+	    n = _getRandomFromRange(VISITSTUD_COURSE_MIN, VISITSTUD_COURSE_MAX);
+	    list = _getRandomList(n, 0, underCourses_.size() - 1);
+	    for (int i = 0; i < list.size(); i++) {
+	      CourseInfo info = (CourseInfo) underCourses_.get( ( (Integer) list.get(i)).
+	          intValue());
+	      writer_.addProperty(CS_P_TAKECOURSE, _getId(CS_C_COURSE, info.globalIndex), true);
+	      if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(id, ontology+"#takesCourse", _getId(CS_C_COURSE, info.globalIndex), true);	    	  	    	 
+	      }
+	    }
+	    writer_.addProperty(CS_P_VISITSASSTUD,
+                _getId(CS_C_DEPT, instances_[CS_C_DEPT].count - 1), true);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(id, ontology+"#visitsAsStudent", _getId(CS_C_DEPT, instances_[CS_C_DEPT].count - 1), true);	    	  	    	 
+	      }
+	    String d = _getRandomFromRange(1, 10)+" month(s)";
+	    writer_.addProperty(CS_P_VISITDURATION, d,false);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(id, ontology+"#visitDuration", d, false);	    	  	    	 
+	      }
+	    if (0 == random_.nextInt(R_VISITSTUD_ADVISOR)) {
+	    	String ad = _selectAdvisor();
+	      writer_.addProperty(CS_P_ADVISOR, ad, true);
+	      if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(id, ontology+"#advisor", ad, true);	    	  	    	 
+	      }
+	    }
+	    writer_.endSection(CS_C_VISITSTUD);
+	  }
 
   /**
    * Generates a graduate student instance.
@@ -1469,7 +2172,7 @@ public class EvoGenerator {
 
     id = _getId(CS_C_GRADSTUD, index);
     writer_.startSection(CS_C_GRADSTUD, id);
-    _generateAStudent_a(CS_C_GRADSTUD, index);
+    _generateAStudent_a(CS_C_GRADSTUD, index, id);
     n = _getRandomFromRange(GRADSTUD_COURSE_MIN, GRADSTUD_COURSE_MAX);
     list = _getRandomList(n, 0, gradCourses_.size() - 1);
     for (int i = 0; i < list.size(); i++) {
@@ -1477,12 +2180,24 @@ public class EvoGenerator {
           intValue());
       writer_.addProperty(CS_P_TAKECOURSE,
                          _getId(CS_C_GRADCOURSE, info.globalIndex), true);
+      if(globalVersionTrigger){	    	  
+    	  writer_log.addPropertyInstance(id, ontology+"#takesCourse", _getId(CS_C_GRADCOURSE, info.globalIndex), true);	    	  	    	 
+      }
     }
     writer_.addProperty(CS_P_UNDERGRADFROM, CS_C_UNIV,
                        _getId(CS_C_UNIV, random_.nextInt(UNIV_NUM)));
-    if (0 == random_.nextInt(R_GRADSTUD_ADVISOR)) {
-      writer_.addProperty(CS_P_ADVISOR, _selectAdvisor(), true);
+    if(globalVersionTrigger){	    	  
+  	  writer_log.addPropertyInstance(id, ontology+"#undergraduateDegreeFrom", _getId(CS_C_UNIV, random_.nextInt(UNIV_NUM)), true);	    	  	    	 
     }
+    if (0 == random_.nextInt(R_GRADSTUD_ADVISOR)) {
+    	String ad = _selectAdvisor();
+    	writer_.addProperty(CS_P_ADVISOR, _selectAdvisor(), true);
+	      if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(id, ontology+"#advisor", ad, true);	    	  	    	 
+	      }
+      
+    }
+    
     _assignGraduateStudentPublications(id, GRADSTUD_PUB_MIN, GRADSTUD_PUB_MAX);
     writer_.endSection(CS_C_GRADSTUD);
   }
@@ -1505,8 +2220,15 @@ public class EvoGenerator {
    * @param ta Information of the TA.
    */
   private void _generateATa(TaInfo ta) {
-    writer_.startAboutSection(CS_C_TA, _getId(CS_C_GRADSTUD, ta.indexInGradStud));
+	  String id = _getId(CS_C_GRADSTUD, ta.indexInGradStud);
+    writer_.startAboutSection(CS_C_TA, id);
+    if(globalVersionTrigger){	    	  
+  	  writer_log.addPropertyInstance(id, RDF.type.getURI(), ontology+"#TeachingAssistant", true);	    	  	    	 
+    }
     writer_.addProperty(CS_P_TAOF, _getId(CS_C_COURSE, ta.indexInCourse), true);
+    if(globalVersionTrigger){	    	  
+    	  writer_log.addPropertyInstance(id, ontology+"#teachingAssistantOf", _getId(CS_C_COURSE, ta.indexInCourse), true);	    	  	    	 
+      }
     writer_.endSection(CS_C_TA);
   }
 
@@ -1524,9 +2246,16 @@ public class EvoGenerator {
    * @param index Index of the course.
    */
   private void _generateACourse(int index) {
-    writer_.startSection(CS_C_COURSE, _getId(CS_C_COURSE, index));
+	  String id = _getId(CS_C_COURSE, index);
+    writer_.startSection(CS_C_COURSE, id);
+    if(globalVersionTrigger){	    	  
+    	  writer_log.addPropertyInstance(id, RDF.type.getURI(), ontology+"#Course", true);	    	  	    	 
+      }
     writer_.addProperty(CS_P_NAME,
                        _getRelativeName(CS_C_COURSE, index), false);
+    if(globalVersionTrigger){	    	  
+  	  writer_log.addPropertyInstance(id, ontology+"#name", _getRelativeName(CS_C_COURSE, index), false);	    	  	    	 
+    }
     writer_.endSection(CS_C_COURSE);
   }
 
@@ -1535,11 +2264,50 @@ public class EvoGenerator {
    * @param index Index of the graduate course.
    */
   private void _generateAGraduateCourse(int index) {
-    writer_.startSection(CS_C_GRADCOURSE, _getId(CS_C_GRADCOURSE, index));
+	  String id = _getId(CS_C_GRADCOURSE, index);
+    writer_.startSection(CS_C_GRADCOURSE, id);
+    if(globalVersionTrigger){	    	  
+  	  writer_log.addPropertyInstance(id, RDF.type.getURI(), ontology+"#GraduateCourse", true);	    	  	    	 
+    }
     writer_.addProperty(CS_P_NAME,
                        _getRelativeName(CS_C_GRADCOURSE, index), false);
+    if(globalVersionTrigger){	    	  
+    	  writer_log.addPropertyInstance(id, ontology+"#name", _getRelativeName(CS_C_GRADCOURSE, index), false);	    	  	    	 
+      }
     writer_.endSection(CS_C_GRADCOURSE);
   }
+  
+  private void _generateAWebCourse(int index) {
+	  String id = _getId(CS_C_WEBCOURSE, index);
+	    writer_.startSection(CS_C_WEBCOURSE, id);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(id, RDF.type.getURI(), ontology+"#WebCourse", true);	    	  	    	 
+	      }
+	    writer_.addProperty(CS_P_NAME,
+	                       _getRelativeName(CS_C_WEBCOURSE, index), false);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(id, ontology+"#name", _getRelativeName(CS_C_WEBCOURSE, index), false);	    	  	    	 
+	      }
+	    String n = "topic"+_getRandomFromRange(1, 150);
+	    writer_.addProperty(CS_P_TOPIC,
+                n, false);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(id, ontology+"#topic", n, false);	    	  	    	 
+	      }
+	    n = "http://example.com/webcourse/"+_getRandomFromRange(1, 150);
+	    writer_.addProperty(CS_P_URL,
+               n , false);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(id, ontology+"#url", n, false);	    	  	    	 
+	      }
+	    int hours = _getRandomFromRange(9, 17);
+	    writer_.addProperty(CS_P_HOURS,
+                hours+"-"+(int)(hours+2), false);
+	    if(globalVersionTrigger){	    	  
+	    	  writer_log.addPropertyInstance(id, ontology+"#hours", hours+"-"+(int)(hours+2), false);	    	  	    	 
+	      }
+	    writer_.endSection(CS_C_WEBCOURSE);
+	  }
 
   /**
    * Generates course/graduate course instances. These course are assigned to some
@@ -1552,12 +2320,16 @@ public class EvoGenerator {
     for (int i = 0; i < gradCourses_.size(); i++) {
       _generateAGraduateCourse( ( (CourseInfo) gradCourses_.get(i)).globalIndex);
     }
+    for (int i = 0; i < webCourses_.size(); i++) {
+        _generateAWebCourse( ( (CourseInfo) webCourses_.get(i)).globalIndex);
+      }
   }
 
   /**
    * Chooses RAs and TAs from graduate student and generates their instances accordingly.
    */
   private void _generateRaTa() {
+	  if(instances_[CS_C_TA].total == 0) return;
     ArrayList list, courseList;
     TaInfo ta;
     RaInfo ra;
@@ -1568,10 +2340,12 @@ public class EvoGenerator {
     ras = new ArrayList();
     list = _getRandomList(instances_[CS_C_TA].total + instances_[CS_C_RA].total,
                       0, instances_[CS_C_GRADSTUD].total - 1);
+    System.out.println("underCourses " + (underCourses_.size() - 1));
+    System.out.println("instances ta " + instances_[CS_C_TA].total);
     courseList = _getRandomList(instances_[CS_C_TA].total, 0,
                             underCourses_.size() - 1);
 
-    for (i = 0; i < instances_[CS_C_TA].total; i++) {
+    for (i = 0; i < courseList.size(); i++) {
       ta = new TaInfo();
       ta.indexInGradStud = ( (Integer) list.get(i)).intValue();
       ta.indexInCourse = ( (CourseInfo) underCourses_.get( ( (Integer)
@@ -1593,9 +2367,15 @@ public class EvoGenerator {
   private void _generateAResearchGroup(int index) {
     String id;
     id = _getId(CS_C_RESEARCHGROUP, index);
+    if(globalVersionTrigger){	    	  
+  	  writer_log.addPropertyInstance(id, RDF.type.getURI(), ontology+"#ResearchGroup", true);	    	  	    	 
+    }
     writer_.startSection(CS_C_RESEARCHGROUP, id);
     writer_.addProperty(CS_P_SUBORGANIZATIONOF,
                        _getId(CS_C_DEPT, instances_[CS_C_DEPT].count - 1), true);
+    if(globalVersionTrigger){	    	  
+  	  writer_log.addPropertyInstance(id, ontology+"#subOrganizationOf", _getId(CS_C_DEPT, instances_[CS_C_DEPT].count - 1), true);	    	  	    	 
+    }
     writer_.endSection(CS_C_RESEARCHGROUP);
   }
 
@@ -1788,11 +2568,13 @@ public class EvoGenerator {
     for (int i = min; i <= max; i++) {
       tmp.add(new Integer(i));
     }
-
+    
     for (int i = 0; i < num; i++) {
-      int pos = _getRandomFromRange(0, tmp.size() - 1);
-      list.add( (Integer) tmp.get(pos));
-      tmp.remove(pos);
+    	if(tmp.size() > 1){
+	      int pos = _getRandomFromRange(0, tmp.size() - 1);
+	      list.add( (Integer) tmp.get(pos));
+	      tmp.remove(pos);
+    	}
     }
 
     return list;
@@ -1805,6 +2587,7 @@ public class EvoGenerator {
    * @return The selected integer.
    */
   private int _getRandomFromRange(int min, int max) {
+	  
     return min + random_.nextInt(max - min + 1);
   }
 

@@ -57,4 +57,36 @@ public class OwlWriter
     s = "</" + T_OWL_PREFIX + "Ontology>";
     out.println(s);
   }
+  
+  /**
+   * Writes the header, including namespace declarations and ontology header.
+   */
+  void writeLogHeader() {
+    String s;
+    s = "xmlns:" + T_RDF_NS +
+        "=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"";
+    log.println(s);
+    s = "xmlns:" + T_RDFS_NS + "=\"http://www.w3.org/2000/01/rdf-schema#\"";
+    log.println(s);
+    s = "xmlns:" + T_OWL_NS + "=\"http://www.w3.org/2002/07/owl#\"";
+    log.println(s);
+    s = "xmlns:" + T_ONTO_NS + "=\"" + generator.ontology + "#\">";
+    log.println(s);
+    s = "xmlns:" + "co" + "=\"" + coURI + "#\">";
+    log.println(s);
+    log.println("\n");
+    s = "<" + T_OWL_PREFIX + "Ontology " + T_RDF_ABOUT + "=\"\">";
+    log.println(s);
+    s = "<" + T_OWL_PREFIX + "imports " + T_RDF_RES + "=\"" +
+        coURI + "\" />";
+    log.println(s);
+    s = "</" + T_OWL_PREFIX + "Ontology>";
+    log.println(s);
+  }
+
+@Override
+public void addType(String type, String valueId) {
+	// TODO Auto-generated method stub
+	
+}
 }

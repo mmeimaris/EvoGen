@@ -42,9 +42,11 @@ public abstract class RdfWriter implements Writer {
   static final String T_RDF_RES = T_RDF_PREFIX + "resource";
   /** white space string */
   static final String T_SPACE = " ";
+  
+  static String coURI = "http://www.diachron-fp7.eu/changes/";
 
   /** output stream */
-  PrintStream out = null;
+  PrintStream out = null, log = null;
   /** the generator */
   EvoGenerator generator;
 
@@ -83,7 +85,25 @@ public abstract class RdfWriter implements Writer {
       System.out.println("Create file failure!");
     }
   }
-
+  
+  /**
+   * Implementation of Writer:startFile.
+   */
+  public void startLogFile(String fileName) {
+    String s;
+    try {
+      log = new PrintStream(new FileOutputStream(fileName));
+      s = "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>";
+      log.println(s);
+      s = "<" + T_RDF_PREFIX + "RDF";
+      log.println(s);
+      writeLogHeader();
+    }
+    catch (IOException e) {
+      System.out.println("Create file failure!");
+    }
+  }
+  
   /**
    * Implementation of Writer:endFile.
    */
@@ -92,6 +112,26 @@ public abstract class RdfWriter implements Writer {
     s = "</" + T_RDF_PREFIX + "RDF>";
     out.println(s);
     out.close();
+  }
+  
+  /**
+   * Implementation of Writer:endFile.
+   */
+  public void endLogFile() {
+    String s;
+    s = "</" + T_RDF_PREFIX + "RDF>";
+    log.println(s);
+    log.close();
+  }
+  
+  /**
+   * Implementation of Writer:endFile.
+   */
+  public void endLog() {
+    String s;
+    s = "</" + T_RDF_PREFIX + "RDF>";
+    log.println(s);
+    log.close();
   }
 
   /**
@@ -104,7 +144,48 @@ public abstract class RdfWriter implements Writer {
         T_RDF_ABOUT + "=\"" + id + "\">";
     out.println(s);
   }
-
+  
+  /**
+   * Implementation of Writer:startSection.
+   */
+  public void addPropertyInstance(String p1, String p2, String p3, boolean p3res) {
+	StringBuilder sb = new StringBuilder();
+	long id = System.nanoTime();	
+	sb.append("<" + coURI + "Add_Property_Instance" + T_SPACE + T_RDF_ABOUT + "=\"" + "http://example.api.com/" + id + "\">");    
+	log.print(sb.toString());
+	log.print("\n");
+    addLogProperty(coURI+"api_p1", p1, true);
+    addLogProperty(coURI+"api_p2", p2, true);
+    addLogProperty(coURI+"api_p3", p3, p3res);
+    String s = "</" + coURI + "Add_Property_Instance" + ">";
+    log.println(s);
+  }
+   
+  /**
+   * Implementation of Writer:startSection.
+   */
+  public void addTypeClass(String p1) {
+	StringBuilder sb = new StringBuilder();
+	long id = System.nanoTime();	
+	sb.append("<" + coURI + "Add_Type_Class" + T_SPACE + T_RDF_ABOUT + "=\"" + "http://example.api.com/" + id + "\">");    
+	log.print(sb.toString());
+	log.print("\n");
+    addLogProperty(coURI+"atc_p1", p1, true);    
+    String s = "</" + coURI + "Add_Type_Class" + ">";
+    log.println(s);
+  }
+  
+  public void addSuperClass(String p1, String p2) {
+		StringBuilder sb = new StringBuilder();
+		long id = System.nanoTime();	
+		sb.append("<" + coURI + "Add_Super_Class" + T_SPACE + T_RDF_ABOUT + "=\"" + "http://example.api.com/" + id + "\">");    
+		log.print(sb.toString());
+		log.print("\n");
+	    addLogProperty(coURI+"asc_p1", p1, true);
+	    addLogProperty(coURI+"asc_p2", p2, true);  
+	    String s = "</" + coURI + "Add_Super_Class" + ">";
+	    log.println(s);
+	  }
   /**
    * Implementation of Writer:startAboutSection.
    */
@@ -142,6 +223,24 @@ public abstract class RdfWriter implements Writer {
 
     out.println(s);
   }
+  
+  /**
+   * Implementation of Writer:addProperty.
+   */
+  public void addLogProperty(String property, String value, boolean isResource) {
+
+    String s;
+    if (isResource) {
+      s = "   <" + "co:" + property + T_SPACE +
+          T_RDF_RES + "=\"" + value + "\" />";
+    }
+    else { //literal
+      s = "   <" + "co:" + property + ">" + value +
+          "</" + "co:" + property + ">";
+    }
+
+    log.println(s);
+  }
 
   /**
    * Implementation of Writer:addProperty.
@@ -163,4 +262,6 @@ public abstract class RdfWriter implements Writer {
    * Writes the header part.
    */
   abstract void writeHeader();
+  
+  abstract void writeLogHeader();
 }

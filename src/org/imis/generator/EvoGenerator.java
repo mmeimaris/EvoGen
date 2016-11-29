@@ -538,6 +538,7 @@ public class EvoGenerator {
    */
   public static void main(String[] args) {
     //default values
+	  
     int univNum = 1, startIndex = 0, seed = 0;
     boolean daml = false;   
     String ontology = null;    
@@ -766,6 +767,8 @@ public class EvoGenerator {
 	System.out.println("Unique CS: " + ucs.size());
 	
 	model.close();
+	WorkloadGenerator workload = new WorkloadGenerator(evoVersions-1);
+	workload.generateWorkload();
 	int i = 0;
 	while(true){
 		if(true) break;
@@ -1070,10 +1073,10 @@ public class EvoGenerator {
 	                
 	            }
 	            
-	            for(int k = 0; k < schemaEvol2; k++){
+	            for(int k = 0; k < schemaEvol2+1; k++){
 	              	
 	            	if(newClasses.isEmpty()) break;
-	            	int newClass = _getRandomFromRange(0, newClasses.keySet().size());
+	            	int newClass = _getRandomFromRange(0, newClasses.keySet().size()+1);
 	            	int index = 0;
 	            	for(Integer s : newClasses.keySet()){
 	            		if(index == newClass){

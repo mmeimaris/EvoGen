@@ -1,5 +1,8 @@
 # EvoGen
 
+Dependencies
+You need to have all Jena libs (tested with version 2.12) in the classpath.
+
 
 To start the generator, run the main class in EvoGenerator.java. The parameters are the original LUBM generator parameters:
 -univ 

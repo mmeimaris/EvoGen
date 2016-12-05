@@ -613,7 +613,7 @@ public class EvoGenerator {
              else
                  throw new Exception();
         }  
-        else if (arg.equals("-strict")) {
+        else if (arg.equals("-schemaEvo")) {
         	if (i < args.length) {
              	arg = args[i++];
              	strict = Double.parseDouble(arg);

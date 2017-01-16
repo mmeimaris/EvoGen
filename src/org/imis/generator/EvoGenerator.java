@@ -765,13 +765,14 @@ public class EvoGenerator {
 		ucs.add(characteristicSetMap.get(n));
 	}
 	System.out.println("Unique CS: " + ucs.size());
+	System.out.println("Starting model size: " + model.size());
+	long startSize = model.size();
 	
-	model.close();
 	WorkloadGenerator workload = new WorkloadGenerator(evoVersions-1);
 	workload.generateWorkload();
 	int i = 0;
 	while(true){
-		if(true) break;
+		//if(true) break;
 		try{
 			files = new File(System.getProperty("user.dir")+"/v"+i).listFiles();
 			Model modelin = ModelFactory.createDefaultModel();
@@ -785,16 +786,19 @@ public class EvoGenerator {
 			//System.out.println("v"+(int)(i+1)+ " size: " + (previousSize+modelin.size()));
 			double shift = (double)modelin.size()/(double)previousSize;
 			System.out.println(shift);
+			System.out.println(previousSize);
 			previousSize += modelin.size();
+			model.add(modelin);
+			System.out.println("model size:" + model.size());
 			modelin.close();
 			i++;
 		}
-		catch(Exception e){			
+		catch(Exception e){
 			break;
 		}
 	}
-	
-	
+	System.out.println("Achieved change: " + (double)(model.size()-startSize)/model.size());
+	model.close();
   
   }
 
@@ -998,10 +1002,29 @@ public class EvoGenerator {
   /** Begins data generation according to the specification, for the defined number of versions */
   private void _generate(int versions) {
 	  
-	  //assignFilters(classFilters);
-	  //System.out.println("current filters: " + currentFilters.toString());
+	  
+	  
 	  _generate(); //V0
-	  //int schemaEvol = (int) Math.floor((1/step));
+	  
+	  File[] files = new File(System.getProperty("user.dir")).listFiles();
+	    Model model = ModelFactory.createDefaultModel();
+	    //model.set
+		for(File file : files){
+			if(!file.getName().contains("owl")) continue;
+			try{
+				
+				FileInputStream in = new FileInputStream(file);
+				model.read(in, "http://example.com", "RDF/XML");			
+				in.close();
+			}
+			catch(Exception e){
+				e.printStackTrace();
+			}
+			
+		}
+		long startingSize = model.size();
+		model.close();
+	  double desSize = startingSize*(1+evoChange);
 	  int schemaEvol = (int)(strict*10);
 	  int schemaEvol2 = schemaEvol / (evoVersions-1);
 	  System.out.println("schema evol param: " + schemaEvol2);
@@ -1013,6 +1036,14 @@ public class EvoGenerator {
 	  double evoChangeOriginal = evoChange;
 	  boolean pub = false, conf = false, journ = false, tech = false, 
 			  book = false, thes = false, proj = false, even = false;
+	  HashMap<String, HashMap<Integer, Double>> initialWeightsMap = new HashMap<String, HashMap<Integer,Double>>();
+	  for(String key : fileWeightsMap.keySet()){
+		  HashMap<Integer, Double> innerClone = new HashMap<Integer, Double>();
+		  for(Integer innerKey : fileWeightsMap.get(key).keySet()){
+			  innerClone.put(innerKey, fileWeightsMap.get(key).get(innerKey));
+		  }
+		  initialWeightsMap.put(key, innerClone);
+	  }
 	  for(int vi = 0 ; vi < evoVersions-1; vi++){
 	    	
 		  globalVersionTrigger = true;
@@ -1031,6 +1062,8 @@ public class EvoGenerator {
             writer_log.start();
 	        for(int d = 0 ; d < howManyDepts ; d++){
 	        	
+	        	//System.out.println("aslist: " + asList.size());
+	        	if(asList.size() == 0) break;
 	            String randomFile = asList.get(random_.nextInt(asList.size()));
 	            instances_ = fileInstanceMap.get(randomFile);
 	                        
@@ -1050,7 +1083,7 @@ public class EvoGenerator {
 	            	}
 	            	
 	            	if(classForChange == 4) continue;
-	            	int totalIter = (int) Math.floor(fileWeightsMap.get(randomFile).get(classForChange))/howManyDepts;
+	            	int totalIter = (int) Math.floor(2*initialWeightsMap.get(randomFile).get(classForChange))/howManyDepts;
 	            	
 	                for(int i = 0; i < totalIter ; i++){
 	                	
